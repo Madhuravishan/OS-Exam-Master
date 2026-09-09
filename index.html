@@ -1370,16 +1370,26 @@
                 appState.quiz.active = false;
             }
 
-            // Hide all views
             ['dashboard', 'quiz-setup', 'active-quiz', 'quiz-results', 'flashcards', 'learn', 'list'].forEach(id => {
-                document.getElementById('view-' + id).classList.add('hidden');
+                const viewEl = document.getElementById('view-' + id);
+                if(viewEl) viewEl.classList.add('hidden');
             });
             
-            // Remove active state from nav
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'text-indigo-600', 'bg-eef2ff', 'border-r-4'));
             
-            // Show selected view
-            document.getElementById('view-' + viewId).classList.remove('hidden');
+            let targetDomId = 'view-' + viewId;
+            if (['mistakes', 'bookmarks', 'question-bank'].includes(viewId)) {
+                targetDomId = 'view-list';
+            } else if (viewId === 'progress') {
+                targetDomId = 'view-dashboard'; // Fallback progress to dashboard stats
+                viewId = 'dashboard';
+            }
+
+            // Show selected view safely
+            const targetEl = document.getElementById(targetDomId);
+            if(targetEl) {
+                targetEl.classList.remove('hidden');
+            }
             
             // Update active nav
             const navEl = document.getElementById('nav-' + viewId);
@@ -1389,7 +1399,6 @@
 
             appState.currentView = viewId;
             
-            // View specific initializations
             if(viewId === 'dashboard') initDashboard();
             if(viewId === 'learn') initLearn();
             if(viewId === 'flashcards') initFlashcards();
