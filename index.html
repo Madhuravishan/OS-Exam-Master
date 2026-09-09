@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS Exam Master - University OS Prep</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            overflow-x: hidden;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Sidebar Nav Item Active State */
+        .nav-item.active {
+            background-color: #eef2ff;
+            color: #4f46e5;
+            border-right: 4px solid #4f46e5;
+            font-weight: 600;
+        }
+
+        /* Option Cards in Quiz */
+        .option-card {
+            transition: all 0.2s ease;
+            border: 2px solid #e2e8f0;
+        }
+        .option-card:hover:not(.selected):not(.disabled) {
+            border-color: #818cf8;
+            background-color: #f8fafc;
+            transform: translateY(-1px);
+        }
+        .option-card.selected {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+        }
+        .option-card.correct-reveal {
+            border-color: #10b981;
+            background-color: #ecfdf5;
+        }
+        .option-card.wrong-reveal {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+        .option-card.disabled { cursor: not-allowed; }
+
+        /* Question Navigator Dots */
+        .q-dot {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .q-dot.unanswered { background: #f1f5f9; color: #64748b; }
+        .q-dot.unanswered:hover { background: #e2e8f0; }
+        .q-dot.answered { background: #4f46e5; color: white; }
+        .q-dot.marked { background: #f59e0b; color: white; }
+        .q-dot.current { border-color: #1e293b; transform: scale(1.1); font-weight: bold; }
+        .q-dot.review-correct { background: #10b981; color: white; }
+        .q-dot.review-wrong { background: #ef4444; color: white; }
+
+        /* Flashcard Flip */
+        .flashcard-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        .flashcard-front, .flashcard-back {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+        .flashcard-back {
+            transform: rotateY(180deg);
+        }
+
+        #modal-overlay {
+            display: none;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+        }
+        .monaco-font { font-family: 'Consolas', 'Monaco', monospace; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col h-full shrink-0 hidden md:flex z-20">
+        <div class="p-6 border-b border-slate-200">
+            <h1 class="text-2xl font-bold text-indigo-600 flex items-center gap-2">
+                <i class="fa-solid fa-microchip"></i> OS Master
+            </h1>
+            <p class="text-xs text-slate-500 mt-1 font-medium tracking-wide uppercase">University Exam Prep</p>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto py-4">
+            <nav class="space-y-1">
+                <p class="px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Dashboard</p>
+                <a href="#" onclick="navigate('dashboard')" id="nav-dashboard" class="nav-item active flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 transition-colors">
+                    <i class="fa-solid fa-house w-5"></i> Dashboard
+                </a>
+                <a href="#" onclick="navigate('progress')" id="nav-progress" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 transition-colors">
+                    <i class="fa-solid fa-chart-pie w-5"></i> My Progress
+                </a>
+
+                <p class="px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-2">Study Materials</p>
+                <a href="#" onclick="navigate('learn')" id="nav-learn" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 transition-colors">
+                    <i class="fa-solid fa-book-open w-5"></i> Learn OS Theory
+                </a>
+                <a href="#" onclick="navigate('flashcards')" id="nav-flashcards" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 transition-colors">
+                    <i class="fa-solid fa-layer-group w-5"></i> Flashcards
+                </a>
+
+                <p class="px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-2">Practice & Exams</p>
+                <a href="#" onclick="navigate('quiz-setup')" id="nav-quiz-setup" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 transition-colors">
+                    <i class="fa-solid fa-play w-5"></i> Start Custom Quiz
+                </a>
+                <a href="#" onclick="startMockExam()" class="nav-item flex items-center gap-3 px-6 py-3 text-indigo-600 font-medium hover:bg-indigo-50 transition-colors">
+                    <i class="fa-solid fa-graduation-cap w-5"></i> Full Mock Exam
+                </a>
+                
+                <p class="px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-2">Review</p>
+                <a href="#" onclick="navigate('question-bank')" id="nav-question-bank" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 transition-colors">
+                    <i class="fa-solid fa-database w-5"></i> Question Bank
+                </a>
+                <a href="#" onclick="navigate('mistakes')" id="nav-mistakes" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 transition-colors">
+                    <i class="fa-solid fa-circle-xmark w-5 text-red-400"></i> My Mistakes
+                </a>
+                <a href="#" onclick="navigate('bookmarks')" id="nav-bookmarks" class="nav-item flex items-center gap-3 px-6 py-3 text-slate-600 hover:bg-slate-50 transition-colors">
+                    <i class="fa-solid fa-star w-5 text-amber-400"></i> Bookmarks
+                </a>
+            </nav>
+        </div>
+        
+        <div class="p-4 border-t border-slate-200">
+            <button onclick="resetAllData()" class="w-full text-xs text-slate-400 hover:text-slate-600 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-trash-can"></i> Reset App Data
+            </button>
+        </div>
+    </aside>
+
+    <!-- Mobile Header -->
+    <div class="md:hidden fixed top-0 w-full bg-white border-b border-slate-200 z-30 flex items-center justify-between p-4 glass-panel">
+        <h1 class="text-xl font-bold text-indigo-600 flex items-center gap-2">
+            <i class="fa-solid fa-microchip"></i> OS Master
+        </h1>
+        <button onclick="toggleMobileMenu()" class="text-slate-600 p-2 focus:outline-none">
+            <i class="fa-solid fa-bars text-2xl"></i>
+        </button>
+    </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-white z-40 hidden flex-col pt-16 px-6 slide-up">
+        <button onclick="toggleMobileMenu()" class="absolute top-4 right-4 p-2 text-slate-600">
+            <i class="fa-solid fa-xmark text-3xl"></i>
+        </button>
+        <div class="flex flex-col gap-4 text-lg">
+            <a href="#" onclick="navigate('dashboard'); toggleMobileMenu()" class="font-medium text-slate-800"><i class="fa-solid fa-house w-8 text-indigo-500"></i> Dashboard</a>
+            <a href="#" onclick="navigate('learn'); toggleMobileMenu()" class="font-medium text-slate-800"><i class="fa-solid fa-book-open w-8 text-indigo-500"></i> Learn OS Theory</a>
+            <a href="#" onclick="navigate('flashcards'); toggleMobileMenu()" class="font-medium text-slate-800"><i class="fa-solid fa-layer-group w-8 text-indigo-500"></i> Flashcards</a>
+            <a href="#" onclick="navigate('quiz-setup'); toggleMobileMenu()" class="font-medium text-slate-800"><i class="fa-solid fa-play w-8 text-indigo-500"></i> Start Custom Quiz</a>
+            <a href="#" onclick="startMockExam(); toggleMobileMenu()" class="font-medium text-indigo-600"><i class="fa-solid fa-graduation-cap w-8 text-indigo-600"></i> Full Mock Exam</a>
+            <a href="#" onclick="navigate('mistakes'); toggleMobileMenu()" class="font-medium text-slate-800"><i class="fa-solid fa-circle-xmark w-8 text-red-500"></i> My Mistakes</a>
+            <a href="#" onclick="navigate('bookmarks'); toggleMobileMenu()" class="font-medium text-slate-800"><i class="fa-solid fa-star w-8 text-amber-500"></i> Bookmarks</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 h-full overflow-y-auto relative bg-slate-50 pt-16 md:pt-0">
+        
+        <!-- View: Dashboard -->
+        <div id="view-dashboard" class="p-6 md:p-10 max-w-6xl mx-auto hidden slide-up">
+            <header class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-800">Welcome Back!</h2>
+                <p class="text-slate-500 mt-1">Let's master Operating Systems for your upcoming exam.</p>
+            </header>
+
+            <!-- Top Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-3 text-indigo-600 mb-2">
+                        <i class="fa-solid fa-database text-xl"></i>
+                        <span class="font-semibold text-sm">Total Questions</span>
+                    </div>
+                    <p id="stat-total-q" class="text-2xl font-bold text-slate-800">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-3 text-emerald-600 mb-2">
+                        <i class="fa-solid fa-bullseye text-xl"></i>
+                        <span class="font-semibold text-sm">Accuracy</span>
+                    </div>
+                    <p id="stat-accuracy" class="text-2xl font-bold text-slate-800">0%</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-3 text-amber-500 mb-2">
+                        <i class="fa-solid fa-fire text-xl"></i>
+                        <span class="font-semibold text-sm">Attempted</span>
+                    </div>
+                    <p id="stat-attempted" class="text-2xl font-bold text-slate-800">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:border-red-300 transition-colors" onclick="navigate('mistakes')">
+                    <div class="flex items-center gap-3 text-red-500 mb-2">
+                        <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                        <span class="font-semibold text-sm">My Mistakes</span>
+                    </div>
+                    <p id="stat-mistakes" class="text-2xl font-bold text-slate-800">0</p>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Action Cards -->
+                <div class="md:col-span-2 space-y-6">
+                    <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
+                        <i class="fa-solid fa-graduation-cap absolute -right-4 -bottom-4 text-9xl opacity-20 transform -rotate-12"></i>
+                        <div class="relative z-10">
+                            <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold tracking-wide backdrop-blur-sm">EXAM SIMULATION</span>
+                            <h3 class="text-3xl font-bold mt-4 mb-2">Full Mock Exam</h3>
+                            <p class="text-indigo-100 mb-6 max-w-md">30 questions, 60 minutes, sequential navigation mode available. Tests Theory, Labs, and Algorithms.</p>
+                            <button onclick="startMockExam()" class="bg-white text-indigo-700 font-bold py-3 px-6 rounded-lg shadow-md hover:bg-slate-50 transition-all hover:scale-105 active:scale-95">
+                                Start Exam Now <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group" onclick="startQuickQuiz('theory')">
+                            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-book"></i>
+                            </div>
+                            <h4 class="font-bold text-lg text-slate-800">Theory Mix</h4>
+                            <p class="text-sm text-slate-500 mt-1">10 random theory questions from all chapters.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group" onclick="startQuickQuiz('lab')">
+                            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-terminal"></i>
+                            </div>
+                            <h4 class="font-bold text-lg text-slate-800">Lab & Commands</h4>
+                            <p class="text-sm text-slate-500 mt-1">Practice Linux commands, shell scripting, and VM setup.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group" onclick="startQuickQuiz('algorithm')">
+                            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-calculator"></i>
+                            </div>
+                            <h4 class="font-bold text-lg text-slate-800">Algorithms</h4>
+                            <p class="text-sm text-slate-500 mt-1">CPU Scheduling and Banker's Algorithm problems.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group" onclick="startQuickQuiz('high_priority')">
+                            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-lg flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fa-solid fa-fire"></i>
+                            </div>
+                            <h4 class="font-bold text-lg text-slate-800">High Priority</h4>
+                            <p class="text-sm text-slate-500 mt-1">The most likely questions to appear on the exam.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Sidebar -->
+                <div class="space-y-6">
+                    <!-- Weak Topics -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                            <i class="fa-solid fa-chart-line text-indigo-500"></i> Topic Mastery
+                        </h3>
+                        <div id="dash-topic-bars" class="space-y-4">
+                            <!-- Populated by JS -->
+                        </div>
+                        <button onclick="navigate('progress')" class="w-full mt-5 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                            View Detailed Analysis
+                        </button>
+                    </div>
+
+                    <!-- AI Recommendation -->
+                    <div class="bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl shadow-sm p-6 text-white">
+                        <h3 class="font-bold flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-robot text-emerald-400"></i> AI Recommendation
+                        </h3>
+                        <p id="ai-recommendation-text" class="text-sm text-slate-300 mb-4 leading-relaxed">
+                            Analyze your performance to generate a smart recommendation.
+                        </p>
+                        <button id="ai-recommendation-btn" onclick="startRecommendedQuiz()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2 rounded-lg transition-colors shadow-sm">
+                            Target Weak Areas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Quiz Setup -->
+        <div id="view-quiz-setup" class="p-6 md:p-10 max-w-4xl mx-auto hidden slide-up">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2">Custom Quiz Builder</h2>
+            <p class="text-slate-500 mb-8">Configure a study session tailored to your exact needs.</p>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-8 space-y-8">
+                    <!-- Topic Selection -->
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-3">1. Select Topics</h3>
+                        <div class="flex flex-wrap gap-2" id="setup-topics">
+                            <button class="topic-btn selected px-4 py-2 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 font-medium text-sm transition-all" data-topic="all">All Topics</button>
+                            <button class="topic-btn px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all" data-topic="Introduction & Structure">Intro & OS Structure</button>
+                            <button class="topic-btn px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all" data-topic="Processes & Threads">Processes & Threads</button>
+                            <button class="topic-btn px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all" data-topic="CPU Scheduling">CPU Scheduling</button>
+                            <button class="topic-btn px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all" data-topic="Process Synchronization">Synchronization</button>
+                            <button class="topic-btn px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all" data-topic="Deadlocks">Deadlocks</button>
+                            <button class="topic-btn px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all" data-topic="Lab: Linux Commands">Lab: Linux Commands</button>
+                            <button class="topic-btn px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all" data-topic="Lab: Shell Scripting">Lab: Shell Scripting</button>
+                            <button class="topic-btn px-4 py-2 rounded-full border border-slate-200 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all" data-topic="Lab: VM Setup">Lab: VM Setup</button>
+                        </div>
+                    </div>
+
+                    <!-- Question Type -->
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-3">2. Question Focus</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="setup-types">
+                            <label class="flex items-center gap-2 p-3 border border-indigo-200 bg-indigo-50 rounded-lg cursor-pointer">
+                                <input type="radio" name="qType" value="all" checked class="w-4 h-4 text-indigo-600">
+                                <span class="font-medium text-sm">Mixed Array</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="qType" value="theory" class="w-4 h-4 text-indigo-600">
+                                <span class="font-medium text-sm">Theory Only</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="qType" value="lab" class="w-4 h-4 text-indigo-600">
+                                <span class="font-medium text-sm">Labs Only</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                                <input type="radio" name="qType" value="algorithm" class="w-4 h-4 text-indigo-600">
+                                <span class="font-medium text-sm">Algorithms Only</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Number of Questions -->
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-3">3. Length</h3>
+                        <div class="flex gap-4">
+                            <input type="range" id="setup-count" min="5" max="75" step="5" value="15" class="w-full md:w-1/2 accent-indigo-600" oninput="document.getElementById('setup-count-display').innerText = this.value + ' Questions'">
+                            <span id="setup-count-display" class="font-bold text-indigo-600 w-32">15 Questions</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Options -->
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-3">4. Options</h3>
+                        <div class="flex flex-col gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="setup-mistakes-only" class="w-4 h-4 text-indigo-600 rounded">
+                                <span class="text-slate-700">Include mostly questions I've gotten wrong previously</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="setup-timer" checked class="w-4 h-4 text-indigo-600 rounded">
+                                <span class="text-slate-700">Enable Exam Timer (2 mins per question)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-50 p-6 border-t border-slate-200 flex justify-end">
+                    <button onclick="generateCustomQuiz()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-play"></i> Generate & Start
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Active Quiz -->
+        <div id="view-active-quiz" class="hidden h-full flex flex-col relative slide-up">
+            
+            <!-- Quiz Header -->
+            <div class="bg-white border-b border-slate-200 p-4 flex justify-between items-center shadow-sm shrink-0 z-10">
+                <div class="flex items-center gap-4">
+                    <button onclick="confirmQuitQuiz()" class="text-slate-400 hover:text-red-500 transition-colors">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                    <div>
+                        <h2 id="quiz-header-title" class="font-bold text-slate-800 hidden md:block">Practice Quiz</h2>
+                        <div class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded tracking-wide uppercase" id="quiz-question-counter">Question 1 of 15</div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <div id="quiz-timer-container" class="flex items-center gap-2 font-mono text-lg font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-lg">
+                        <i class="fa-regular fa-clock text-slate-500"></i>
+                        <span id="quiz-timer">00:00</span>
+                    </div>
+                    <button onclick="submitQuiz()" id="btn-submit-quiz" class="bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold py-2 px-4 rounded shadow-sm transition-colors hidden md:block">
+                        Submit Exam
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quiz Layout Grid -->
+            <div class="flex-1 flex overflow-hidden">
+                
+                <!-- Main Question Area -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-24">
+                    <div class="max-w-3xl mx-auto">
+                        
+                        <!-- Tags & Meta -->
+                        <div class="flex flex-wrap items-center justify-between mb-4">
+                            <div class="flex gap-2">
+                                <span id="q-topic-tag" class="text-xs font-bold text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded">Process Mgmt</span>
+                                <span id="q-type-tag" class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded">Lab Concept</span>
+                                <span id="q-diff-tag" class="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-1 rounded hidden">Hard</span>
+                            </div>
+                            <button onclick="toggleBookmarkCurrent()" id="btn-bookmark-current" class="text-slate-300 hover:text-amber-400 transition-colors text-xl">
+                                <i class="fa-solid fa-bookmark"></i>
+                            </button>
+                        </div>
+
+                        <!-- Question Text & Context -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-6">
+                            <div id="q-context-box" class="bg-slate-800 text-emerald-400 font-mono text-sm p-4 rounded-lg mb-6 overflow-x-auto hidden border border-slate-700 shadow-inner">
+                                <!-- Code / Command context goes here -->
+                            </div>
+                            <h3 id="q-text" class="text-xl md:text-2xl font-bold text-slate-800 leading-snug">
+                                Question text loads here...
+                            </h3>
+                        </div>
+
+                        <!-- Options -->
+                        <div class="space-y-3" id="q-options-container">
+                            <!-- Options injected by JS -->
+                        </div>
+                        
+                        <!-- Review Feedback (Hidden during active test, shown in review) -->
+                        <div id="q-review-feedback" class="mt-8 hidden fade-in">
+                            <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-4">
+                                <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-info text-blue-500"></i> Explanation
+                                </h4>
+                                <p id="q-explanation-text" class="text-slate-600 text-sm md:text-base leading-relaxed"></p>
+                                
+                                <div id="q-why-wrong-box" class="mt-4 pt-4 border-t border-slate-200 hidden">
+                                    <h5 class="font-bold text-xs text-slate-400 uppercase tracking-wider mb-2">Why other options are wrong:</h5>
+                                    <ul id="q-why-wrong-list" class="space-y-2 text-sm text-slate-600">
+                                        <!-- Injected by JS -->
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div id="q-memory-trick-box" class="bg-amber-50 border border-amber-200 rounded-xl p-5 hidden">
+                                    <h4 class="font-bold text-amber-800 text-sm flex items-center gap-2 mb-1">
+                                        <i class="fa-solid fa-brain"></i> Memory Trick
+                                    </h4>
+                                    <p id="q-memory-trick-text" class="text-amber-700 text-sm font-medium"></p>
+                                </div>
+                                <div id="q-exam-tip-box" class="bg-indigo-50 border border-indigo-200 rounded-xl p-5 hidden">
+                                    <h4 class="font-bold text-indigo-800 text-sm flex items-center gap-2 mb-1">
+                                        <i class="fa-solid fa-crosshairs"></i> Exam Tip
+                                    </h4>
+                                    <p id="q-exam-tip-text" class="text-indigo-700 text-sm font-medium"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Right Sidebar Navigator (Desktop) -->
+                <div class="w-64 bg-white border-l border-slate-200 flex flex-col hidden lg:flex">
+                    <div class="p-4 border-b border-slate-200 bg-slate-50">
+                        <h3 class="font-bold text-slate-700 text-sm">Question Navigator</h3>
+                        <div class="flex gap-4 mt-2 text-xs font-medium">
+                            <span class="flex items-center gap-1 text-slate-500"><div class="w-2 h-2 rounded-full bg-slate-200"></div> Unseen</span>
+                            <span class="flex items-center gap-1 text-indigo-600"><div class="w-2 h-2 rounded-full bg-indigo-500"></div> Answered</span>
+                            <span class="flex items-center gap-1 text-amber-500"><div class="w-2 h-2 rounded-full bg-amber-500"></div> Marked</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4">
+                        <div class="grid grid-cols-5 gap-2" id="desktop-q-navigator">
+                            <!-- Dots injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Navigation Bar -->
+            <div class="bg-white border-t border-slate-200 p-4 flex justify-between items-center z-10">
+                <button onclick="toggleMarkForReview()" id="btn-mark-review" class="flex items-center gap-2 text-slate-500 hover:text-amber-500 font-medium transition-colors px-3 py-2 rounded-lg hover:bg-slate-50">
+                    <i class="fa-solid fa-flag"></i> <span class="hidden sm:inline">Mark for Review</span>
+                </button>
+                
+                <div class="flex gap-3">
+                    <button onclick="prevQuestion()" id="btn-prev-q" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 sm:px-6 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-arrow-left"></i> <span class="hidden sm:inline">Previous</span>
+                    </button>
+                    <button onclick="nextQuestion()" id="btn-next-q" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 sm:px-8 rounded-lg transition-colors flex items-center gap-2 shadow-sm">
+                        <span class="hidden sm:inline" id="next-btn-text">Next</span> <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Submit Button (Visible only on small screens) -->
+            <div class="md:hidden absolute bottom-20 right-4">
+                <button onclick="submitQuiz()" class="bg-emerald-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-check-double"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- View: Quiz Results -->
+        <div id="view-quiz-results" class="p-6 md:p-10 max-w-4xl mx-auto hidden slide-up pb-24">
+            <div class="text-center mb-10">
+                <div id="result-icon-container" class="w-24 h-24 mx-auto bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-5xl mb-4">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 id="result-title" class="text-4xl font-bold text-slate-800 mb-2">Quiz Completed!</h2>
+                <p id="result-subtitle" class="text-slate-500 text-lg">Here is your performance breakdown.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 border-b border-slate-200">
+                    <div class="p-8 text-center border-b md:border-b-0 md:border-r border-slate-200">
+                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Score</p>
+                        <p class="text-5xl font-black text-slate-800"><span id="result-score-val">0</span><span class="text-2xl text-slate-400 font-medium">/<span id="result-total-val">0</span></span></p>
+                    </div>
+                    <div class="p-8 text-center border-b md:border-b-0 md:border-r border-slate-200">
+                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Percentage</p>
+                        <p id="result-percent-val" class="text-5xl font-black text-indigo-600">0%</p>
+                    </div>
+                    <div class="p-8 text-center">
+                        <p class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Time Used</p>
+                        <p id="result-time-val" class="text-3xl font-bold text-slate-700 mt-2">00:00</p>
+                    </div>
+                </div>
+                
+                <div class="p-8 bg-slate-50">
+                    <h3 class="font-bold text-slate-800 mb-4">Performance by Topic</h3>
+                    <div id="result-topic-breakdown" class="space-y-4">
+                        <!-- Topic bars injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="reviewQuiz()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none">
+                    <i class="fa-solid fa-magnifying-glass"></i> Review Answers
+                </button>
+                <button onclick="navigate('dashboard')" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold py-3 px-8 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none">
+                    <i class="fa-solid fa-house"></i> Return to Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- View: Flashcards -->
+        <div id="view-flashcards" class="p-6 md:p-10 max-w-4xl mx-auto hidden slide-up h-full flex flex-col">
+            <header class="mb-6 shrink-0">
+                <h2 class="text-3xl font-bold text-slate-800">OS Flashcards</h2>
+                <p class="text-slate-500 mt-1">Master key definitions and memory tricks.</p>
+            </header>
+
+            <div class="flex-1 flex flex-col items-center justify-center relative min-h-[400px]">
+                
+                <div class="w-full max-w-2xl aspect-[3/2] perspective-1000 group cursor-pointer" onclick="flipFlashcard()">
+                    <div id="flashcard-element" class="flashcard w-full h-full relative">
+                        <div class="flashcard-inner w-full h-full relative">
+                            
+                            <!-- Front -->
+                            <div class="flashcard-front bg-white border-2 border-indigo-100 rounded-2xl shadow-lg p-8 flex flex-col items-center justify-center text-center">
+                                <span class="absolute top-4 right-6 text-sm font-bold text-indigo-300 uppercase tracking-widest"><i class="fa-solid fa-hand-pointer"></i> Tap to flip</span>
+                                <span id="fc-topic" class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border border-slate-200 px-3 py-1 rounded-full">Topic</span>
+                                <h3 id="fc-question" class="text-2xl md:text-3xl font-bold text-slate-800 leading-tight">Question goes here?</h3>
+                            </div>
+                            
+                            <!-- Back -->
+                            <div class="flashcard-back bg-indigo-600 border-2 border-indigo-700 rounded-2xl shadow-lg p-8 flex flex-col items-center justify-center text-center text-white">
+                                <h3 id="fc-answer" class="text-xl md:text-2xl font-bold leading-relaxed mb-6">Answer goes here.</h3>
+                                <div id="fc-memory-trick" class="bg-indigo-800/50 p-4 rounded-xl border border-indigo-500 w-full max-w-md hidden">
+                                    <p class="text-sm text-indigo-200 font-semibold uppercase tracking-wider mb-1"><i class="fa-solid fa-brain"></i> Memory Trick</p>
+                                    <p id="fc-memory-text" class="font-medium text-indigo-50"></p>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="mt-10 flex items-center gap-6 w-full max-w-2xl justify-between">
+                    <button onclick="prevFlashcard()" class="w-12 h-12 rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 flex items-center justify-center text-xl transition-all hover:-translate-x-1">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="text-slate-500 font-medium font-mono" id="fc-counter">1 / 20</div>
+                    <button onclick="nextFlashcard()" class="w-12 h-12 rounded-full bg-indigo-600 text-white shadow-md hover:bg-indigo-700 flex items-center justify-center text-xl transition-all hover:translate-x-1">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Learn / Theory DB -->
+        <div id="view-learn" class="p-6 md:p-10 max-w-5xl mx-auto hidden slide-up">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2">Learn OS Theory</h2>
+            <p class="text-slate-500 mb-8">Quick, 5-second recall notes and memory tricks directly from your lectures.</p>
+
+            <div class="mb-6 flex gap-4 overflow-x-auto pb-2 scrollbar-hide" id="learn-topic-filters">
+                <!-- Filters injected by JS -->
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="learn-cards-container">
+                <!-- Cards injected by JS -->
+            </div>
+        </div>
+        
+        <!-- Generic List View (for Mistakes, Bookmarks, Q-Bank) -->
+        <div id="view-list" class="p-6 md:p-10 max-w-5xl mx-auto hidden slide-up">
+            <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h2 id="list-title" class="text-3xl font-bold text-slate-800">List Title</h2>
+                    <p id="list-subtitle" class="text-slate-500 mt-1">Subtitle</p>
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="list-search" placeholder="Search questions..." onkeyup="filterList()" class="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full md:w-64">
+                </div>
+            </header>
+
+            <div class="space-y-4" id="list-container">
+                <!-- Items injected by JS -->
+            </div>
+            
+            <div id="list-empty-state" class="hidden text-center py-20">
+                <i class="fa-solid fa-folder-open text-6xl text-slate-200 mb-4"></i>
+                <h3 class="text-xl font-bold text-slate-500">Nothing here yet!</h3>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modals & Overlays -->
+    <div id="modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Generic Modal Content -->
+        <div id="modal-content" class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 scale-95 opacity-0 transition-all duration-200">
+            <h3 id="modal-title" class="text-xl font-bold text-slate-800 mb-2">Title</h3>
+            <p id="modal-text" class="text-slate-600 mb-6">Text content goes here.</p>
+            <div class="flex justify-end gap-3" id="modal-actions">
+                <button onclick="closeModal()" class="px-4 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100">Cancel</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 rounded-lg font-medium bg-indigo-600 text-white hover:bg-indigo-700">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* 
+        =======================================================================
+        OS EXAM MASTER - DATABASE & LOGIC
+        Generated strictly from the provided Chapter 1, 3, 4, 5, 6, 7 and Labs
+        =======================================================================
+        */
+
+        // Utility to inject CSS dynamically for custom perspective
+        document.head.insertAdjacentHTML("beforeend", `<style>.perspective-1000 { perspective: 1000px; }</style>`);
+
+        // --- DATABASE ---
+        
+        // Topics definition for mapping and colors
+        const TOPICS = {
+            "Intro & Structure": { color: "blue" },
+            "Processes & Threads": { color: "purple" },
+            "CPU Scheduling": { color: "emerald" },
+            "Synchronization": { color: "amber" },
+            "Deadlocks": { color: "red" },
+            "Lab: Linux Commands": { color: "slate" },
+            "Lab: Shell Scripting": { color: "cyan" },
+            "Lab: VM Setup": { color: "teal" }
+        };
+
+        const questionsDB = [
+            // --- CHAPTER 1: INTRO & STRUCTURE ---
+            {
+                id: "Q_CH1_001",
+                topic: "Intro & Structure", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "Which of the following best describes the 'bootstrap program' in a computer system?",
+                options: [
+                    "It is the main kernel program that remains in RAM at all times.",
+                    "It is a small program stored in ROM/firmware that initializes the system and loads the OS kernel.",
+                    "It is a user-level program that handles dual-mode operations.",
+                    "It is the process that handles swapping processes between main memory and disk."
+                ],
+                correctAnswer: 1,
+                explanation: "The bootstrap program is the initial program that runs when a computer is powered on or rebooted. It is stored in ROM/EEPROM (firmware) because RAM is volatile. Its job is to initialize hardware and load the operating system kernel into memory.",
+                whyOthersWrong: [
+                    "The kernel is loaded BY the bootstrap program.",
+                    "Dual-mode operation is handled by hardware mode bits.",
+                    "Swapping is handled by the Medium-Term Scheduler within the OS."
+                ],
+                examTip: "Bootstrap = First program to run. Stored in ROM. Loads the Kernel."
+            },
+            {
+                id: "Q_CH1_002",
+                topic: "Intro & Structure", type: "comparison", difficulty: "hard", priority: "HIGH",
+                question: "Consider an OS handling I/O device completion. What is the primary difference between 'Polling' and 'Interrupts'?",
+                options: [
+                    "Polling requires specialized DMA hardware; Interrupts do not.",
+                    "Interrupts are generated by software only; Polling is hardware only.",
+                    "In polling, the CPU continually checks a busy flag in a loop; with interrupts, the device forces the CPU to jump to a service routine when done.",
+                    "Polling prevents infinite loops; Interrupts are used to create time-slices."
+                ],
+                correctAnswer: 2,
+                explanation: "Polling means the CPU actively waits and wastes cycles checking if the device is done (Wait loop). An interrupt means the CPU does other work, and the hardware signals the CPU when it's finished, triggering an Interrupt Service Routine (ISR).",
+                memoryTrick: "Polling = 'Are we there yet? Are we there yet?'. Interrupt = 'Wake me up when we arrive.'",
+                examTip: "Polling wastes CPU cycles for slow devices but is fast for rapid events. Interrupts save CPU cycles."
+            },
+            {
+                id: "Q_CH1_003",
+                topic: "Intro & Structure", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "How does the hardware indicate whether the system is running in 'user mode' or 'kernel mode'?",
+                options: [
+                    "By reading the process control block (PCB).",
+                    "Through a mode bit provided by the hardware.",
+                    "By checking the program counter.",
+                    "By consulting the Bootstrap program in ROM."
+                ],
+                correctAnswer: 1,
+                explanation: "Dual-mode operation is supported by a hardware 'mode bit' (e.g., 0 for kernel/monitor mode, 1 for user mode). This protects the OS from errant users by restricting privileged instructions to kernel mode.",
+                examTip: "Mode Bit: 0 = Kernel/Monitor, 1 = User. A system call changes it from 1 to 0."
+            },
+            {
+                id: "Q_CH1_004",
+                topic: "Intro & Structure", type: "concept", difficulty: "hard", priority: "VERY HIGH",
+                question: "When a user program calls a system call like `write()`, what happens to the mode bit?",
+                options: [
+                    "The mode bit stays as 1 (user mode) because it is a user process.",
+                    "A trap is generated, the mode bit is changed from 1 to 0, the kernel executes the call, and returns with mode bit 1.",
+                    "The mode bit changes from 0 to 1, signaling the hardware to allow disk access.",
+                    "The mode bit is disabled entirely during I/O operations."
+                ],
+                correctAnswer: 1,
+                explanation: "A system call triggers a software interrupt (trap). The hardware switches the mode bit to 0 (Kernel mode), executes the privileged OS code, and sets it back to 1 (User mode) before returning control to the user program.",
+                examTip: "System Call = Trap. User(1) -> Kernel(0) -> User(1)."
+            },
+            {
+                id: "Q_CH1_005",
+                topic: "Intro & Structure", type: "concept", difficulty: "medium", priority: "MEDIUM",
+                question: "Which of the following best describes Direct Memory Access (DMA)?",
+                options: [
+                    "It allows the CPU to directly execute programs from the hard disk.",
+                    "It allows device controllers to transfer blocks of data directly to main memory without CPU intervention.",
+                    "It is a scheduling algorithm that bypasses the Ready Queue.",
+                    "It prevents unauthorized processes from accessing shared memory segments."
+                ],
+                correctAnswer: 1,
+                explanation: "DMA is used for high-speed I/O. The device controller transfers entire blocks of data directly to/from main memory, interrupting the CPU only once per block, rather than once per byte, saving massive CPU overhead.",
+                examTip: "DMA = Device to Memory directly. 1 Interrupt per BLOCK, not per byte."
+            },
+
+            // --- CHAPTER 3: PROCESSES ---
+            {
+                id: "Q_CH3_001",
+                topic: "Processes & Threads", type: "definition", difficulty: "easy", priority: "VERY HIGH",
+                question: "What is the distinction between a 'program' and a 'process'?",
+                options: [
+                    "A program is an active entity in memory; a process is a passive entity on disk.",
+                    "They are identical terms used interchangeably in modern OS.",
+                    "A program is a passive entity stored on disk; a process is an active entity in execution.",
+                    "A process only contains the code section, while a program contains the heap and stack."
+                ],
+                correctAnswer: 2,
+                explanation: "A program is just a file containing instructions (passive). It becomes a process (active) when an executable file is loaded into memory.",
+                memoryTrick: "Program = The Recipe on paper. Process = Actually baking the cake."
+            },
+            {
+                id: "Q_CH3_002",
+                topic: "Processes & Threads", type: "scenario", difficulty: "medium", priority: "HIGH",
+                question: "A process executes a 'fork()' system call. Which of the following statements is true regarding the newly created child process?",
+                options: [
+                    "It shares the exact same memory space (stack and heap) as the parent indefinitely.",
+                    "It is an exact duplicate of the parent process, but has its own distinct Process ID (PID) and memory space.",
+                    "It automatically replaces its memory space with a new program without needing an 'exec()' call.",
+                    "It begins execution from the very first line of the main() function."
+                ],
+                correctAnswer: 1,
+                explanation: "fork() clones the parent, creating a child that is an exact duplicate (code, data, heap, stack), but the child gets a new PID. Execution in both parent and child continues immediately AFTER the fork() call.",
+                whyOthersWrong: [
+                    "They do not share memory space; the child gets a copy.",
+                    "exec() is required to load a NEW program.",
+                    "It continues from the line after fork(), not the start of main()."
+                ]
+            },
+            {
+                id: "Q_CH3_003",
+                topic: "Processes & Threads", type: "concept", difficulty: "hard", priority: "HIGH",
+                question: "In the context of process scheduling, which scheduler controls the 'degree of multiprogramming'?",
+                options: [
+                    "Short-Term Scheduler (CPU Scheduler)",
+                    "Medium-Term Scheduler",
+                    "Long-Term Scheduler (Job Scheduler)",
+                    "Dispatcher"
+                ],
+                correctAnswer: 2,
+                explanation: "The Long-Term Scheduler (LTS) selects processes from the disk pool and loads them into memory. By deciding how many processes are in memory, it controls the degree of multiprogramming. It is invoked infrequently.",
+                examTip: "LTS = Degree of Multiprogramming. STS = CPU execution. MTS = Swapping."
+            },
+            {
+                id: "Q_CH3_004",
+                topic: "Processes & Threads", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "What is the primary function of the Medium-Term Scheduler?",
+                options: [
+                    "To allocate CPU time to processes in the ready queue.",
+                    "To select jobs from the disk and move them into the ready queue.",
+                    "To swap partially executed processes out of main memory to disk, and swap them back in later.",
+                    "To handle I/O interrupts and device queues."
+                ],
+                correctAnswer: 2,
+                explanation: "The Medium-Term Scheduler handles 'swapping'. If memory is full, it swaps a process out to disk to free up RAM, and later swaps it back in to resume execution.",
+                memoryTrick: "MTS = Swapping (Moving active processes in and out of RAM)."
+            },
+            {
+                id: "Q_CH3_005",
+                topic: "Processes & Threads", type: "comparison", difficulty: "hard", priority: "EXAM",
+                question: "Comparing Shared Memory and Message Passing for Interprocess Communication (IPC), which statement is correct?",
+                options: [
+                    "Message passing requires no synchronization, while shared memory requires explicit synchronization by the developer.",
+                    "Shared memory is typically slower because every access requires a system call to the kernel.",
+                    "Message passing allows processes to access a common RAM segment simultaneously.",
+                    "Shared memory automatically prevents race conditions."
+                ],
+                correctAnswer: 0,
+                explanation: "In Shared Memory, processes access the same RAM. This is very fast but requires the programmer to explicitly synchronize access (e.g., using Semaphores) to avoid race conditions. Message Passing uses the OS kernel to route messages, which provides implicit synchronization but is slower due to system calls.",
+                examTip: "Shared Memory = Fast, but manual sync required. Message Passing = Slower (kernel intervention), but sync is implicit."
+            },
+            {
+                id: "Q_CH3_006",
+                topic: "Processes & Threads", type: "scenario", difficulty: "medium", priority: "HIGH",
+                question: "What does the `fork()` system call return to the parent process upon successful execution?",
+                options: [
+                    "0",
+                    "The Process ID (PID) of the child process",
+                    "-1",
+                    "The parent's own PID"
+                ],
+                correctAnswer: 1,
+                explanation: "The fork() call returns 0 to the newly created child process, but it returns the positive PID of the child to the parent process. It returns -1 if the creation failed.",
+                examTip: "fork() in Parent = Child's PID. fork() in Child = 0."
+            },
+
+            // --- CHAPTER 4: THREADS ---
+            {
+                id: "Q_CH4_001",
+                topic: "Processes & Threads", type: "concept", difficulty: "medium", priority: "MEDIUM",
+                question: "Which of the following is NOT shared between threads belonging to the same multithreaded process?",
+                options: [
+                    "Program Code (Text section)",
+                    "Global Data (Data section)",
+                    "Open Files",
+                    "Stack and Registers"
+                ],
+                correctAnswer: 3,
+                explanation: "Threads share the code, data, and OS resources (like open files). However, each thread must have its own stack (to manage local function calls) and its own set of registers (since they execute independently).",
+                memoryTrick: "Threads share the 'House' (Code/Data/Files) but have their own 'Bedrooms' (Stack/Registers)."
+            },
+            {
+                id: "Q_CH4_002",
+                topic: "Processes & Threads", type: "concept", difficulty: "hard", priority: "HIGH",
+                question: "In the 'Many-to-One' multithreading model, what is a major drawback?",
+                options: [
+                    "Creating a user thread requires creating a corresponding kernel thread, causing overhead.",
+                    "If one user thread makes a blocking system call, the entire process (and all other user threads) blocks.",
+                    "It restricts the developer to only creating a very small number of threads.",
+                    "It cannot be implemented on systems without hardware multithreading."
+                ],
+                correctAnswer: 1,
+                explanation: "In the Many-to-One model, many user-level threads are mapped to a single kernel thread. Since the kernel only sees one thread, if that thread blocks (e.g., waiting for I/O), the kernel blocks it, effectively halting all user threads mapped to it.",
+                examTip: "Many-to-One = 1 Kernel thread. If it blocks, everything blocks!"
+            },
+            {
+                id: "Q_CH4_003",
+                topic: "Processes & Threads", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "Which of the following is a primary benefit of using threads over multiple processes?",
+                options: [
+                    "Threads provide stronger memory isolation and security than processes.",
+                    "Threads eliminate the need for synchronization when modifying global variables.",
+                    "Creating a thread is significantly faster and requires less memory overhead than creating a process.",
+                    "If one thread crashes, the other threads in the process are completely unaffected."
+                ],
+                correctAnswer: 2,
+                explanation: "Threads are 'lightweight'. Creating them and context switching between them is much faster because they share the same address space and do not require the OS to allocate new memory segments.",
+                whyOthersWrong: [
+                    "Processes have stronger memory isolation.",
+                    "Threads strictly REQUIRE synchronization for global variables.",
+                    "If a thread causes a fatal fault (like a segfault), the entire process crashes."
+                ]
+            },
+
+            // --- CHAPTER 5: CPU SCHEDULING ---
+            {
+                id: "Q_CH5_001",
+                topic: "CPU Scheduling", type: "algorithm", difficulty: "hard", priority: "VERY HIGH",
+                question: "Which CPU scheduling algorithm is mathematically proven to provide the minimum average waiting time for a given set of processes?",
+                options: [
+                    "First-Come, First-Served (FCFS)",
+                    "Round Robin (RR)",
+                    "Shortest-Job-First (SJF)",
+                    "Multilevel Feedback Queue"
+                ],
+                correctAnswer: 2,
+                explanation: "Shortest-Job-First (SJF) is provably optimal for minimizing average waiting time. By moving short processes before long ones, the waiting time of the short process decreases more than it increases the waiting time of the long process.",
+                examTip: "SJF = Minimum Average Waiting Time. But it suffers from Starvation!"
+            },
+            {
+                id: "Q_CH5_002",
+                topic: "CPU Scheduling", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "What is the 'Convoy Effect' in CPU Scheduling?",
+                options: [
+                    "When a low-priority process starves because high-priority processes keep arriving.",
+                    "When many short processes wait behind one very long CPU-bound process, drastically increasing average waiting time.",
+                    "When a system constantly swaps processes in and out of memory (thrashing).",
+                    "When the time quantum in Round Robin is too small, causing massive context switch overhead."
+                ],
+                correctAnswer: 1,
+                explanation: "The Convoy Effect happens primarily in FCFS scheduling. If a massive CPU-bound process arrives first, all the quick I/O-bound processes get stuck behind it in the ready queue, like cars stuck behind a slow truck.",
+                memoryTrick: "Convoy Effect = Fast cars stuck behind a slow truck (FCFS)."
+            },
+            {
+                id: "Q_CH5_003",
+                topic: "CPU Scheduling", type: "concept", difficulty: "hard", priority: "HIGH",
+                question: "In a Multilevel Feedback Queue scheduler, how does the system typically handle a process that does NOT finish within its allocated time quantum in the top-priority queue?",
+                options: [
+                    "It is terminated immediately and throws a time-out trap.",
+                    "It is moved back to the exact same queue to run again.",
+                    "It is preempted and demoted to a lower-priority queue.",
+                    "Its priority is artificially increased (Aging) to ensure it finishes."
+                ],
+                correctAnswer: 2,
+                explanation: "A Multilevel Feedback Queue allows processes to move between queues. If a process uses too much CPU time, it is deemed CPU-bound and is demoted to a lower-priority queue (usually with a larger time quantum).",
+                examTip: "Feedback Queue = Processes move. CPU hogs drop down. Starving processes move up (Aging)."
+            },
+            {
+                id: "Q_CH5_004",
+                topic: "CPU Scheduling", type: "calculation", difficulty: "hard", priority: "EXAM",
+                question: "Consider three processes arriving at time 0: P1 (Burst 24ms), P2 (Burst 3ms), and P3 (Burst 3ms). If they are scheduled using Round Robin with a Time Quantum of 4ms, what is the completion time of process P3?",
+                options: [
+                    "6 ms",
+                    "7 ms",
+                    "10 ms",
+                    "30 ms"
+                ],
+                correctAnswer: 2,
+                explanation: "RR(4) Execution order:<br>0-4: P1 executes (20 left)<br>4-7: P2 executes (completes, 3ms used)<br>7-10: P3 executes (completes, 3ms used).<br>Therefore, P3 completes at 10ms.",
+                examTip: "Always draw a quick Gantt chart. Pay attention to whether the burst time is less than the quantum."
+            },
+            {
+                id: "Q_CH5_005",
+                topic: "CPU Scheduling", type: "concept", difficulty: "medium", priority: "MEDIUM",
+                question: "What is 'Aging' in the context of Priority Scheduling?",
+                options: [
+                    "Gradually decreasing the time quantum of a process the longer it runs.",
+                    "Gradually increasing the priority of a process that has been waiting in the system for a long time.",
+                    "Terminating processes that have been in the ready queue for too long.",
+                    "Moving CPU-bound processes to background queues."
+                ],
+                correctAnswer: 1,
+                explanation: "Priority scheduling suffers from Starvation (low priority processes may never run). Aging solves this by gradually increasing the priority of waiting processes so they eventually execute.",
+                memoryTrick: "Aging makes a process older and wiser, thus increasing its priority."
+            },
+
+            // --- CHAPTER 6: SYNCHRONIZATION ---
+            {
+                id: "Q_CH6_001",
+                topic: "Synchronization", type: "concept", difficulty: "medium", priority: "VERY HIGH",
+                question: "Which of the following is NOT one of the three requirements that a solution to the Critical-Section problem MUST satisfy?",
+                options: [
+                    "Mutual Exclusion",
+                    "Progress",
+                    "Bounded Waiting",
+                    "Preemption"
+                ],
+                correctAnswer: 3,
+                explanation: "The 3 requirements are: 1) Mutual Exclusion (only one inside), 2) Progress (if empty, someone must be allowed in), 3) Bounded Waiting (no process waits forever). Preemption is not a requirement (in fact, disabling preemption is one way to achieve mutual exclusion).",
+                examTip: "Remember: MPB (Mutual Exclusion, Progress, Bounded Waiting)."
+            },
+            {
+                id: "Q_CH6_002",
+                topic: "Synchronization", type: "definition", difficulty: "easy", priority: "HIGH",
+                question: "What is a Race Condition?",
+                options: [
+                    "A state where two processes are waiting for each other indefinitely.",
+                    "A situation where the outcome depends on the specific, non-deterministic order in which interleaved processes access shared data.",
+                    "When a CPU executes instructions faster than memory can supply them.",
+                    "An error that occurs when the degree of multiprogramming exceeds RAM capacity."
+                ],
+                correctAnswer: 1,
+                explanation: "A race condition occurs when concurrent processes access and manipulate shared data, and the final outcome depends entirely on the particular order of execution (who 'wins the race').",
+                whyOthersWrong: [
+                    "Two processes waiting indefinitely is a Deadlock.",
+                    "Executing faster than memory is a Memory Stall."
+                ]
+            },
+            {
+                id: "Q_CH6_003",
+                topic: "Synchronization", type: "code", difficulty: "hard", priority: "HIGH",
+                question: "In Semaphore terminology, what does the `wait(S)` operation (also known as P) essentially do?",
+                options: [
+                    "Increments the semaphore value and wakes up a waiting process.",
+                    "While S <= 0, it loops (blocks). When S > 0, it decrements S.",
+                    "Spins in an infinite loop without modifying any values.",
+                    "Swaps the contents of two memory registers atomically."
+                ],
+                correctAnswer: 1,
+                explanation: "The wait(S) operation checks the semaphore. If S <= 0, it blocks/waits. Once S > 0, it decrements S and enters the critical section. Signal(S) increments it.",
+                examTip: "Wait (P) = Decrement & Block if <= 0. Signal (V) = Increment & Wake up."
+            },
+            {
+                id: "Q_CH6_004",
+                topic: "Synchronization", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "In Peterson's Solution for two processes, what is the role of the `turn` variable?",
+                options: [
+                    "It counts the number of times a process has entered the critical section.",
+                    "It acts as an atomic lock mechanism.",
+                    "If both processes want to enter simultaneously, `turn` resolves the conflict by dictating whose turn it is to wait.",
+                    "It forces processes to strictly alternate turns, breaking the Progress requirement."
+                ],
+                correctAnswer: 2,
+                explanation: "Peterson's solution uses `flag[]` to indicate intent and `turn` to resolve simultaneous conflicts. A process sets `turn` to the OTHER process's ID, meaning 'if we both want to go, you can go first.'",
+                examTip: "flag = I want to enter. turn = I yield to the other process."
+            },
+            {
+                id: "Q_CH6_005",
+                topic: "Synchronization", type: "scenario", difficulty: "hard", priority: "EXAM",
+                question: "In the Dining-Philosophers problem, if every philosopher picks up their left chopstick simultaneously, what occurs?",
+                options: [
+                    "Starvation",
+                    "Deadlock",
+                    "Race Condition",
+                    "Priority Inversion"
+                ],
+                correctAnswer: 1,
+                explanation: "If all 5 philosophers pick up their left chopstick, all 5 chopsticks are held. When they reach for their right chopstick, it is held by their neighbor. Everyone is waiting for a resource held by someone else in a cycle. This is a Circular Wait, resulting in Deadlock.",
+                examTip: "Dining Philosophers + All grab left = Circular Wait Deadlock."
+            },
+            {
+                id: "Q_CH6_006",
+                topic: "Synchronization", type: "concept", difficulty: "medium", priority: "MEDIUM",
+                question: "What is a 'Monitor' in the context of Process Synchronization?",
+                options: [
+                    "A hardware screen used to view OS logs.",
+                    "A high-level abstraction (class) that automatically enforces mutual exclusion for the variables and methods inside it.",
+                    "A kernel thread that constantly checks for deadlocks.",
+                    "A special type of counting semaphore."
+                ],
+                correctAnswer: 1,
+                explanation: "A monitor is a high-level programming language construct. It encapsulates shared data and the procedures that operate on it, ensuring that only one process can be active within the monitor at a time, simplifying synchronization for the programmer.",
+                memoryTrick: "Monitor = A 'safe room' where only one process can enter at a time."
+            },
+
+            // --- CHAPTER 7: DEADLOCKS ---
+            {
+                id: "Q_CH7_001",
+                topic: "Deadlocks", type: "concept", difficulty: "medium", priority: "VERY HIGH",
+                question: "For a deadlock to arise, four conditions must hold simultaneously. Which of the following is ONE of those conditions?",
+                options: [
+                    "Preemption (Resources can be forcibly taken away)",
+                    "Hold and Wait (A process holding a resource is waiting for another)",
+                    "Shared Resources (Resources can be used by multiple processes simultaneously)",
+                    "Linear Wait (Processes wait in a straight queue)"
+                ],
+                correctAnswer: 1,
+                explanation: "The 4 necessary conditions for deadlock are: 1) Mutual Exclusion, 2) Hold and Wait, 3) No Preemption (cannot forcefully take), 4) Circular Wait.",
+                memoryTrick: "Deadlock requires NO PREEMPTION. If you can yank the resource away, you can break the deadlock."
+            },
+            {
+                id: "Q_CH7_002",
+                topic: "Deadlocks", type: "concept", difficulty: "hard", priority: "HIGH",
+                question: "How do modern mainstream operating systems like UNIX and Windows handle deadlocks?",
+                options: [
+                    "They use the Banker's Algorithm dynamically for deadlock avoidance.",
+                    "They use a detection algorithm running every 10ms to kill deadlocked processes.",
+                    "They use the 'Ostrich Algorithm', pretending deadlocks never occur because handling them is too costly.",
+                    "They strictly prevent 'Hold and Wait' by requiring processes to request all resources at startup."
+                ],
+                correctAnswer: 2,
+                explanation: "Most general-purpose OSes (UNIX, Windows) use the Ostrich Algorithm. They ignore the problem because deadlocks are rare, and the overhead of preventing or avoiding them (like running Banker's algorithm) degrades system performance heavily.",
+                examTip: "UNIX/Windows = Ostrich Algorithm (Ignore it)."
+            },
+            {
+                id: "Q_CH7_003",
+                topic: "Deadlocks", type: "calculation", difficulty: "hard", priority: "EXAM",
+                question: "In the Banker's Algorithm, a state is considered 'Safe' if:",
+                options: [
+                    "The number of Available resources is greater than the total Maximum demand of all processes combined.",
+                    "There exists a sequence of ALL processes such that each process's future resource requests can be satisfied by currently available resources plus resources held by previously finished processes.",
+                    "No process is currently requesting any resources.",
+                    "The resource allocation graph does not contain any cycles."
+                ],
+                correctAnswer: 1,
+                explanation: "A safe state means there is at least one execution sequence <P1, P2... Pn> where every process can finish. Even if P2 needs more than what's available now, it can wait for P1 to finish and release its resources.",
+                examTip: "Safe State = At least ONE safe execution sequence exists. Cycle in RAG only means deadlock if there's 1 instance per resource."
+            },
+            {
+                id: "Q_CH7_004",
+                topic: "Deadlocks", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "If a Resource-Allocation Graph (RAG) contains a cycle, does this guarantee a deadlock exists?",
+                options: [
+                    "Yes, a cycle always indicates a deadlock.",
+                    "No, if there are multiple instances of a resource type, a cycle indicates only a possibility of a deadlock.",
+                    "No, cycles only indicate starvation, not deadlock.",
+                    "Yes, but only if the cycle includes an I/O device."
+                ],
+                correctAnswer: 1,
+                explanation: "If there is only ONE instance of every resource type, a cycle guarantees deadlock. However, if there are multiple instances of resources, a cycle implies a *possibility* of deadlock, but a process outside the cycle might release a resource and break it.",
+                examTip: "1 Instance + Cycle = Deadlock. Multiple Instances + Cycle = Maybe Deadlock."
+            },
+
+            // --- LABS: LINUX COMMANDS & SCRIPTING ---
+            {
+                id: "Q_LAB_001",
+                topic: "Lab: Linux Commands", type: "command", difficulty: "easy", priority: "HIGH",
+                question: "You want to print the current working directory in the Ubuntu terminal. Which command do you use?",
+                options: [
+                    "cd",
+                    "ls -l",
+                    "pwd",
+                    "whoami"
+                ],
+                correctAnswer: 2,
+                explanation: "pwd stands for 'Print Working Directory'. It outputs the full absolute path of where you currently are in the file system.",
+                whyOthersWrong: [
+                    "cd = change directory.",
+                    "ls = list directory contents.",
+                    "whoami = print current username."
+                ]
+            },
+            {
+                id: "Q_LAB_002",
+                topic: "Lab: Linux Commands", type: "command", difficulty: "medium", priority: "HIGH",
+                question: "You have a file named 'db.txt' and you want to extract only the 2nd and 7th fields, which are separated by a colon (:). Which command achieves this?",
+                options: [
+                    "grep -d ':' -f 2,7 db.txt",
+                    "cut -d ':' -f 2,7 db.txt",
+                    "sort -t ':' -k 2,7 db.txt",
+                    "cut -c 2-7 db.txt"
+                ],
+                correctAnswer: 1,
+                explanation: "The 'cut' command is used to extract sections from each line. '-d' specifies the delimiter (colon here) and '-f' specifies the fields to extract.",
+                examTip: "cut: -d is Delimiter, -f is Field, -c is Character columns."
+            },
+            {
+                id: "Q_LAB_003",
+                topic: "Lab: Linux Commands", type: "command", difficulty: "hard", priority: "EXAM",
+                question: "A file has permissions `rwxr-xr--`. What is the numerical (octal) representation of this permission, used with the `chmod` command?",
+                options: [
+                    "754",
+                    "764",
+                    "774",
+                    "644"
+                ],
+                correctAnswer: 0,
+                explanation: "Permissions are calculated as Read=4, Write=2, Execute=1. \nOwner: rwx = 4+2+1 = 7.\nGroup: r-x = 4+0+1 = 5.\nOthers: r-- = 4+0+0 = 4.\nResult: 754.",
+                memoryTrick: "R=4, W=2, X=1. Just add them up per block."
+            },
+            {
+                id: "Q_LAB_004",
+                topic: "Lab: Shell Scripting", type: "code", difficulty: "medium", priority: "HIGH",
+                question: "In Bash shell scripting, how do you perform an arithmetic evaluation to add 20 and 5 and print it?",
+                options: [
+                    "echo expr 20 + 5",
+                    "echo $((20+5))",
+                    "echo [20 + 5]",
+                    "echo ${20+5}"
+                ],
+                correctAnswer: 1,
+                explanation: "Arithmetic expansion in Bash uses the double-parentheses syntax `$(( expression ))`. You can also use `expr`, but it requires backticks: `echo \\`expr 20 + 5\\``.",
+                examTip: "Bash Math: Use $(( math here ))"
+            },
+            {
+                id: "Q_LAB_005",
+                topic: "Lab: Shell Scripting", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "In a bash `if` statement, what does the comparison operator `-ge` mean?",
+                options: [
+                    "Greater than",
+                    "Greater than or equal to",
+                    "Not equal to",
+                    "Lesser than or equal to"
+                ],
+                correctAnswer: 1,
+                explanation: "In Bash integer comparisons: -eq (equal), -ne (not equal), -gt (greater than), -ge (greater than or equal to), -lt (less than), -le (less than or equal to).",
+                memoryTrick: "ge = Greater or Equal"
+            },
+            {
+                id: "Q_LAB_006",
+                topic: "Lab: VM Setup", type: "concept", difficulty: "medium", priority: "HIGH",
+                question: "When setting up an Ubuntu VM in VirtualBox, what is the effect of choosing 'NAT' for the Network Adapter?",
+                options: [
+                    "The VM gets its own IP address directly from the physical router.",
+                    "The VM shares the host machine's IP address on the external network via translation.",
+                    "The VM is isolated and cannot access the internet.",
+                    "The VM can only communicate with other VMs, not the host."
+                ],
+                correctAnswer: 1,
+                explanation: "Network Address Translation (NAT) allows the guest VM to access the internet by mapping its internal IP through the Host machine's IP address. To the outside world, traffic looks like it's coming from the host.",
+                whyOthersWrong: [
+                    "Getting an IP from the router is 'Bridged Adapter'.",
+                    "'Internal Networking' isolates it to only other VMs."
+                ]
+            },
+            {
+                id: "Q_LAB_007",
+                topic: "Lab: Linux Commands", type: "command", difficulty: "medium", priority: "HIGH",
+                question: "Which grep option is used to display lines that do NOT match the specified pattern?",
+                options: [
+                    "-i",
+                    "-n",
+                    "-v",
+                    "-c"
+                ],
+                correctAnswer: 2,
+                explanation: "The `-v` flag in grep stands for 'invert match'. It returns all lines that do NOT contain the search string.",
+                examTip: "grep -v = inVert match."
+            },
+            {
+                id: "Q_LAB_008",
+                topic: "Lab: Linux Commands", type: "command", difficulty: "easy", priority: "MEDIUM",
+                question: "What does the `wc` command output by default?",
+                options: [
+                    "File permissions, owner, and group.",
+                    "Number of lines, words, and characters (bytes) in a file.",
+                    "The current working directory path.",
+                    "The number of active processes running."
+                ],
+                correctAnswer: 1,
+                explanation: "`wc` stands for word count. By default, it outputs lines (`-l`), words (`-w`), and bytes/characters (`-c` or `-m`).",
+                examTip: "wc = lines, words, bytes."
+            },
+            {
+                id: "Q_LAB_009",
+                topic: "Lab: Shell Scripting", type: "code", difficulty: "hard", priority: "HIGH",
+                question: "Consider this bash statement: `if [ -f $1 ]`. What does the `-f` flag test for?",
+                options: [
+                    "If the file is executable.",
+                    "If the directory exists.",
+                    "If the argument is a normal file and it exists.",
+                    "If the string is not null."
+                ],
+                correctAnswer: 2,
+                explanation: "In bash file tests, `-f` checks if the path exists and is a regular file. `-d` checks for directory. `-s` checks if it's non-empty.",
+                examTip: "-f = file, -d = directory."
+            },
+            {
+                id: "Q_LAB_010",
+                topic: "Lab: Linux Commands", type: "command", difficulty: "medium", priority: "HIGH",
+                question: "How do you give the User and Group 'read and write' permissions using symbolic chmod notation, without modifying 'Others'?",
+                options: [
+                    "chmod 660 file.txt",
+                    "chmod ug+rw file.txt",
+                    "chmod a+rw file.txt",
+                    "chmod u=rw, g=rw file.txt"
+                ],
+                correctAnswer: 1,
+                explanation: "`ug+rw` targets the User (u) and Group (g), adding (+) Read (r) and Write (w) permissions.",
+                examTip: "u=user, g=group, o=others, a=all. + adds, - removes."
+            }
+        ];
+
+        // --- FLASHCARDS DB ---
+        const flashcardsDB = [
+            { topic: "Processes", q: "What is a Process?", a: "A program in execution. It is an active entity (unlike a program, which is passive).", trick: "Program = Recipe. Process = Baking." },
+            { topic: "Processes", q: "What does the PCB contain?", a: "Process Control Block holds the process state, program counter, CPU registers, scheduling info, and memory limits.", trick: "It's the 'ID Card' and 'Save State' of a process." },
+            { topic: "Scheduling", q: "What is the Convoy Effect?", a: "When short I/O-bound processes get stuck waiting behind one massive CPU-bound process.", trick: "Fast cars stuck behind a slow truck. Happens in FCFS." },
+            { topic: "Deadlocks", q: "What are the 4 necessary conditions for Deadlock?", a: "1. Mutual Exclusion<br>2. Hold and Wait<br>3. No Preemption<br>4. Circular Wait", trick: "If you break ANY ONE of these, deadlocks cannot occur." },
+            { topic: "Linux Commands", q: "What does `chmod 754 file` do?", a: "Sets permissions:<br>Owner: rwx (7)<br>Group: r-x (5)<br>Others: r-- (4)", trick: "Read=4, Write=2, Execute=1." },
+            { topic: "Synchronization", q: "What is the difference between Wait(P) and Signal(V) in Semaphores?", a: "Wait(S): Decrements S. If S <= 0, process blocks.<br>Signal(S): Increments S. Wakes up a waiting process.", trick: "Wait = Consume resource. Signal = Release resource." },
+            { topic: "Architecture", q: "What causes a Trap?", a: "A software-generated interrupt caused by an error (divide by zero) or a user request (System Call).", trick: "Trap = Software. Interrupt = Hardware." },
+            { topic: "Deadlocks", q: "What is the Ostrich Algorithm?", a: "Pretending deadlocks never occur because handling them is too costly. Used by UNIX and Windows.", trick: "Stick your head in the sand like an ostrich." },
+            { topic: "Scheduling", q: "What is Aging?", a: "Gradually increasing the priority of a waiting process to prevent Starvation.", trick: "With age comes priority." },
+            { topic: "Linux Shell", q: "What does `cut -d ':' -f 2` do?", a: "Extracts the 2nd field from each line, assuming fields are separated by a colon.", trick: "-d = delimiter, -f = field." }
+        ];
+
+        // --- THEORY DB (Learn OS) ---
+        const theoryDB = [
+            {
+                topic: "Intro & Structure",
+                title: "Dual Mode Operation",
+                content: "Hardware supports two modes: <strong>User Mode (1)</strong> and <strong>Kernel Mode (0)</strong>. This protects the OS from malicious or buggy user code.<br><br>When a user program needs hardware access, it makes a <strong>System Call</strong> (a Trap). The mode bit switches to 0, the OS performs the task, and switches back to 1 before returning.",
+                examTip: "System calls are the ONLY way user programs can access hardware securely."
+            },
+            {
+                topic: "Processes & Threads",
+                title: "Process vs Thread",
+                content: "A <strong>Process</strong> is an isolated execution environment. A <strong>Thread</strong> is a lightweight execution unit inside a process.<br><br><strong>Shared:</strong> Code, Data (globals), Files.<br><strong>Not Shared (Unique):</strong> Stack, Registers, Program Counter.",
+                examTip: "Creating threads is much faster/cheaper than creating processes because no new memory space needs to be allocated."
+            },
+            {
+                topic: "CPU Scheduling",
+                title: "Shortest-Job-First (SJF)",
+                content: "SJF schedules the process with the shortest CPU burst next. It can be preemptive or non-preemptive.<br><br><strong>Advantage:</strong> Mathematically proven to give the minimum average waiting time.<br><strong>Disadvantage:</strong> Can cause 'Starvation' for long processes.",
+                examTip: "To fix starvation in SJF or Priority scheduling, use 'Aging' (gradually increasing a waiting process's priority)."
+            },
+            {
+                topic: "Deadlocks",
+                title: "Banker's Algorithm",
+                content: "A Deadlock Avoidance algorithm. It checks if granting a resource request will leave the system in a <strong>Safe State</strong>.<br><br>Safe State = There is a sequence where ALL processes can finish. It relies on knowing the 'Max Need' of each process upfront.",
+                examTip: "If a state is Safe -> NO deadlock. If Unsafe -> Possibility of deadlock (but not guaranteed)."
+            },
+            {
+                topic: "Synchronization",
+                title: "Race Conditions",
+                content: "Occurs when multiple processes access shared memory concurrently, and the final result depends on the exact execution order (interleaving).<br><br>Fixed by ensuring <strong>Mutual Exclusion</strong> (only one process in the Critical Section at a time).",
+                examTip: "TestAndSet and Semaphores are tools used to prevent race conditions by locking access."
+            },
+            {
+                topic: "Lab: Linux Commands",
+                title: "The 'grep' Command",
+                content: "Used to search text or files for matching patterns using regular expressions.<br><br><strong>Flags:</strong><br>-i : Ignore case<br>-v : Invert match (show lines that DO NOT match)<br>-n : Show line numbers",
+                examTip: "grep -v 'error' removes error lines. grep -i 'linux' matches LINUX, linux, LiNuX."
+            },
+            {
+                topic: "Lab: Linux Commands",
+                title: "File Permissions (chmod)",
+                content: "Permissions are represented in Octal (numbers) or Symbolic (letters).<br>Read (r) = 4, Write (w) = 2, Execute (x) = 1.<br><br>Example: <code>chmod 754 file.txt</code><br>Owner: 4+2+1=7 (rwx)<br>Group: 4+0+1=5 (r-x)<br>Other: 4+0+0=4 (r--)",
+                examTip: "Always calculate block by block: User, Group, Others."
+            }
+        ];
+
+        // --- APP STATE ---
+        let appState = {
+            currentView: 'dashboard',
+            quiz: {
+                active: false,
+                questions: [],
+                currentIndex: 0,
+                userAnswers: {}, // index -> optionIndex
+                markedForReview: new Set(),
+                startTime: 0,
+                timerInterval: null
+            },
+            progress: {
+                mistakes: JSON.parse(localStorage.getItem('os_mistakes') || '{}'), // qId -> count
+                bookmarks: new Set(JSON.parse(localStorage.getItem('os_bookmarks') || '[]')),
+                history: JSON.parse(localStorage.getItem('os_history') || '[]') // array of quiz results
+            }
+        };
+
+        function navigate(viewId) {
+            if(appState.quiz.active && viewId !== 'active-quiz') {
+                if(!confirm("You have an active quiz. Are you sure you want to leave? Your progress will be lost.")) {
+                    return;
+                }
+                clearInterval(appState.quiz.timerInterval);
+                appState.quiz.active = false;
+            }
+
+            // Hide all views
+            ['dashboard', 'quiz-setup', 'active-quiz', 'quiz-results', 'flashcards', 'learn', 'list'].forEach(id => {
+                document.getElementById('view-' + id).classList.add('hidden');
+            });
+            
+            // Remove active state from nav
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'text-indigo-600', 'bg-eef2ff', 'border-r-4'));
+            
+            // Show selected view
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+            
+            // Update active nav
+            const navEl = document.getElementById('nav-' + viewId);
+            if(navEl) {
+                navEl.classList.add('active');
+            }
+
+            appState.currentView = viewId;
+            
+            // View specific initializations
+            if(viewId === 'dashboard') initDashboard();
+            if(viewId === 'learn') initLearn();
+            if(viewId === 'flashcards') initFlashcards();
+            if(viewId === 'mistakes') initListView('mistakes');
+            if(viewId === 'bookmarks') initListView('bookmarks');
+            if(viewId === 'question-bank') initListView('all');
+            
+            window.scrollTo(0,0);
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+            menu.classList.toggle('flex');
+        }
+
+        // --- DASHBOARD LOGIC ---
+        function initDashboard() {
+            document.getElementById('stat-total-q').innerText = questionsDB.length;
+            
+            const history = appState.progress.history;
+            let attempted = 0;
+            let correct = 0;
+            
+            history.forEach(quiz => {
+                attempted += quiz.total;
+                correct += quiz.score;
+            });
+            
+            document.getElementById('stat-attempted').innerText = attempted;
+            
+            const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
+            document.getElementById('stat-accuracy').innerText = accuracy + "%";
+            
+            const mistakeCount = Object.keys(appState.progress.mistakes).length;
+            document.getElementById('stat-mistakes').innerText = mistakeCount;
+
+            // Topic Performance
+            const topicStats = {};
+            // Initialize
+            Object.keys(TOPICS).forEach(t => topicStats[t] = { correct: 0, total: 0 });
+            
+            history.forEach(quiz => {
+                if(quiz.topicBreakdown) {
+                    Object.keys(quiz.topicBreakdown).forEach(t => {
+                        if(!topicStats[t]) topicStats[t] = { correct: 0, total: 0 };
+                        topicStats[t].correct += quiz.topicBreakdown[t].correct;
+                        topicStats[t].total += quiz.topicBreakdown[t].total;
+                    });
+                }
+            });
+
+            const barsContainer = document.getElementById('dash-topic-bars');
+            barsContainer.innerHTML = '';
+            
+            let weakestTopic = null;
+            let lowestAcc = 100;
+
+            Object.keys(topicStats).forEach(topic => {
+                if(topicStats[topic].total > 0) {
+                    const acc = Math.round((topicStats[topic].correct / topicStats[topic].total) * 100);
+                    if(acc < lowestAcc) { lowestAcc = acc; weakestTopic = topic; }
+                    
+                    const color = TOPICS[topic]?.color || 'indigo';
+                    
+                    barsContainer.innerHTML += `
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-slate-600">${topic}</span>
+                                <span class="text-slate-800">${acc}%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-${color}-500 h-2 rounded-full" style="width: ${acc}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            if(Object.keys(topicStats).filter(t => topicStats[t].total > 0).length === 0) {
+                barsContainer.innerHTML = '<p class="text-sm text-slate-500 italic">Complete a quiz to see your topic mastery.</p>';
+            }
+
+            // AI Recommendation
+            const aiText = document.getElementById('ai-recommendation-text');
+            const aiBtn = document.getElementById('ai-recommendation-btn');
+            
+            if(attempted === 0) {
+                aiText.innerText = "You haven't taken any quizzes yet. Start with a mixed diagnostic test!";
+                aiBtn.innerText = "Start Diagnostic Test";
+                aiBtn.onclick = () => startQuickQuiz('all');
+            } else if (weakestTopic) {
+                aiText.innerHTML = `Your weakest area is <strong>${weakestTopic}</strong> (${lowestAcc}% accuracy). You should focus your revision here.`;
+                aiBtn.innerText = `Practice ${weakestTopic}`;
+                aiBtn.onclick = () => {
+                    document.getElementById('nav-quiz-setup').click();
+                    // Auto select the weak topic in setup
+                    setTimeout(() => {
+                        document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('selected', 'bg-indigo-50', 'border-indigo-200', 'text-indigo-700'));
+                        const btn = document.querySelector(`.topic-btn[data-topic="${weakestTopic}"]`);
+                        if(btn) btn.classList.add('selected', 'bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+                    }, 100);
+                };
+            } else {
+                aiText.innerText = "Great job! Your accuracy is solid. Try a Full Mock Exam to test your endurance.";
+                aiBtn.innerText = "Start Mock Exam";
+                aiBtn.onclick = startMockExam;
+            }
+        }
+
+        // Topic Button Toggle
+        document.querySelectorAll('.topic-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const isAll = e.target.dataset.topic === 'all';
+                if(isAll) {
+                    document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('selected', 'bg-indigo-50', 'border-indigo-200', 'text-indigo-700'));
+                    e.target.classList.add('selected', 'bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+                } else {
+                    document.querySelector('.topic-btn[data-topic="all"]').classList.remove('selected', 'bg-indigo-50', 'border-indigo-200', 'text-indigo-700');
+                    e.target.classList.toggle('selected');
+                    e.target.classList.toggle('bg-indigo-50');
+                    e.target.classList.toggle('border-indigo-200');
+                    e.target.classList.toggle('text-indigo-700');
+                }
+            });
+        });
+
+        function startQuickQuiz(mode) {
+            let pool = [];
+            if(mode === 'all') pool = [...questionsDB];
+            else if(mode === 'theory') pool = questionsDB.filter(q => !q.topic.includes('Lab'));
+            else if(mode === 'lab') pool = questionsDB.filter(q => q.topic.includes('Lab'));
+            else if(mode === 'algorithm') pool = questionsDB.filter(q => q.type === 'algorithm' || q.type === 'calculation');
+            else if(mode === 'high_priority') pool = questionsDB.filter(q => q.priority === 'VERY HIGH' || q.priority === 'EXAM');
+            
+            pool = shuffleArray(pool).slice(0, 10);
+            if(pool.length === 0) return alert("Not enough questions found for this mode.");
+            
+            startQuizInstance(pool, false);
+        }
+
+        function startMockExam() {
+            let pool = shuffleArray([...questionsDB]).slice(0, 30); // Real mock has 30 Qs
+            startQuizInstance(pool, true); // true = timer enforced
+        }
+
+        function generateCustomQuiz() {
+            // Get selected topics
+            const selectedBtns = document.querySelectorAll('.topic-btn.selected');
+            let selectedTopics = Array.from(selectedBtns).map(b => b.dataset.topic);
+            
+            let pool = [...questionsDB];
+            
+            // Filter by topic
+            if(!selectedTopics.includes('all')) {
+                pool = pool.filter(q => selectedTopics.includes(q.topic));
+            }
+            
+            // Filter by type
+            const qType = document.querySelector('input[name="qType"]:checked').value;
+            if(qType === 'theory') pool = pool.filter(q => !q.topic.includes('Lab'));
+            if(qType === 'lab') pool = pool.filter(q => q.topic.includes('Lab'));
+            if(qType === 'algorithm') pool = pool.filter(q => q.type === 'algorithm' || q.type === 'calculation');
+            
+            // Filter by mistakes
+            const mistakesOnly = document.getElementById('setup-mistakes-only').checked;
+            if(mistakesOnly) {
+                const mistakeIds = Object.keys(appState.progress.mistakes);
+                let mistakePool = pool.filter(q => mistakeIds.includes(q.id));
+                if(mistakePool.length > 0) pool = mistakePool; // Fallback to normal pool if no mistakes
+            }
+            
+            const count = parseInt(document.getElementById('setup-count').value);
+            pool = shuffleArray(pool).slice(0, count);
+            
+            if(pool.length === 0) {
+                showModal("No Questions Found", "Try adjusting your filters to include more topics.");
+                return;
+            }
+            
+            const useTimer = document.getElementById('setup-timer').checked;
+            startQuizInstance(pool, useTimer);
+        }
+
+        function startQuizInstance(questions, useTimer) {
+            navigate('active-quiz');
+            appState.quiz = {
+                active: true,
+                questions: questions,
+                currentIndex: 0,
+                userAnswers: {},
+                markedForReview: new Set(),
+                startTime: Date.now(),
+                useTimer: useTimer,
+                timeLeft: useTimer ? questions.length * 120 : 0, // 2 mins per Q
+                timerInterval: null,
+                isReviewMode: false
+            };
+
+            document.getElementById('quiz-header-title').innerText = useTimer ? "Mock Exam" : "Practice Quiz";
+            
+            if(useTimer) {
+                document.getElementById('quiz-timer-container').classList.remove('hidden');
+                updateTimerDisplay();
+                appState.quiz.timerInterval = setInterval(() => {
+                    appState.quiz.timeLeft--;
+                    updateTimerDisplay();
+                    if(appState.quiz.timeLeft <= 0) {
+                        clearInterval(appState.quiz.timerInterval);
+                        submitQuiz();
+                    }
+                }, 1000);
+            } else {
+                document.getElementById('quiz-timer-container').classList.add('hidden');
+            }
+
+            renderQuestionNavigator();
+            loadQuestion(0);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(appState.quiz.timeLeft / 60);
+            const seconds = appState.quiz.timeLeft % 60;
+            const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('quiz-timer').innerText = display;
+            
+            if(appState.quiz.timeLeft < 60) {
+                document.getElementById('quiz-timer-container').classList.add('bg-red-100', 'text-red-700');
+                document.getElementById('quiz-timer-container').classList.remove('bg-slate-100', 'text-slate-700');
+            }
+        }
+
+        function loadQuestion(index) {
+            appState.quiz.currentIndex = index;
+            const q = appState.quiz.questions[index];
+            
+            document.getElementById('quiz-question-counter').innerText = `Question ${index + 1} of ${appState.quiz.questions.length}`;
+            
+            // Tags
+            document.getElementById('q-topic-tag').innerText = q.topic;
+            document.getElementById('q-type-tag').innerText = q.type.toUpperCase();
+            
+            // Bookmark state
+            const bookmarkBtn = document.getElementById('btn-bookmark-current');
+            if(appState.progress.bookmarks.has(q.id)) {
+                bookmarkBtn.innerHTML = '<i class="fa-solid fa-bookmark text-amber-400"></i>';
+            } else {
+                bookmarkBtn.innerHTML = '<i class="fa-regular fa-bookmark"></i>';
+            }
+
+            // Question Text
+            document.getElementById('q-text').innerHTML = q.question;
+            
+            // Options
+            const container = document.getElementById('q-options-container');
+            container.innerHTML = '';
+            
+            q.options.forEach((opt, optIndex) => {
+                const isSelected = appState.quiz.userAnswers[index] === optIndex;
+                const letter = String.fromCharCode(65 + optIndex); // A, B, C, D
+                
+                let cardClass = "option-card flex items-start gap-4 p-4 md:p-5 rounded-xl cursor-pointer bg-white";
+                if(isSelected) cardClass += " selected";
+                
+                // If in review mode, show correct/wrong colors
+                if(appState.quiz.isReviewMode) {
+                    cardClass += " disabled";
+                    if(optIndex === q.correctAnswer) cardClass += " correct-reveal";
+                    else if (isSelected && optIndex !== q.correctAnswer) cardClass += " wrong-reveal";
+                }
+
+                const clickHandler = appState.quiz.isReviewMode ? "" : `onclick="selectOption(${index}, ${optIndex})"`;
+
+                container.innerHTML += `
+                    <div class="${cardClass}" ${clickHandler} id="opt-${index}-${optIndex}">
+                        <div class="w-8 h-8 shrink-0 rounded-full border-2 border-current flex items-center justify-center font-bold text-sm">
+                            ${letter}
+                        </div>
+                        <div class="font-medium text-slate-700 pt-1 leading-relaxed">
+                            ${opt}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Review Feedback Section
+            const feedbackBox = document.getElementById('q-review-feedback');
+            if(appState.quiz.isReviewMode) {
+                feedbackBox.classList.remove('hidden');
+                document.getElementById('q-explanation-text').innerHTML = q.explanation;
+                
+                if(q.whyOthersWrong && q.whyOthersWrong.length > 0) {
+                    document.getElementById('q-why-wrong-box').classList.remove('hidden');
+                    const list = document.getElementById('q-why-wrong-list');
+                    list.innerHTML = q.whyOthersWrong.map(w => `<li><i class="fa-solid fa-xmark text-red-400 mr-2"></i> ${w}</li>`).join('');
+                } else {
+                    document.getElementById('q-why-wrong-box').classList.add('hidden');
+                }
+
+                if(q.memoryTrick) {
+                    document.getElementById('q-memory-trick-box').classList.remove('hidden');
+                    document.getElementById('q-memory-trick-text').innerHTML = q.memoryTrick;
+                } else {
+                    document.getElementById('q-memory-trick-box').classList.add('hidden');
+                }
+
+                if(q.examTip) {
+                    document.getElementById('q-exam-tip-box').classList.remove('hidden');
+                    document.getElementById('q-exam-tip-text').innerHTML = q.examTip;
+                } else {
+                    document.getElementById('q-exam-tip-box').classList.add('hidden');
+                }
+            } else {
+                feedbackBox.classList.add('hidden');
+            }
+
+            // Buttons state
+            document.getElementById('btn-prev-q').disabled = index === 0;
+            const isLast = index === appState.quiz.questions.length - 1;
+            document.getElementById('next-btn-text').innerText = isLast ? (appState.quiz.isReviewMode ? "Finish" : "Review") : "Next";
+            
+            // Mark for review button state
+            const markBtn = document.getElementById('btn-mark-review');
+            if(appState.quiz.isReviewMode) {
+                markBtn.classList.add('hidden');
+            } else {
+                markBtn.classList.remove('hidden');
+                if(appState.quiz.markedForReview.has(index)) {
+                    markBtn.classList.add('text-amber-500');
+                    markBtn.classList.remove('text-slate-500');
+                } else {
+                    markBtn.classList.remove('text-amber-500');
+                    markBtn.classList.add('text-slate-500');
+                }
+            }
+
+            updateQuestionNavigatorUI();
+        }
+
+        function selectOption(qIndex, optIndex) {
+            if(appState.quiz.isReviewMode) return;
+            appState.quiz.userAnswers[qIndex] = optIndex;
+            loadQuestion(qIndex); // re-render to show selection
+        }
+
+        function toggleMarkForReview() {
+            if(appState.quiz.isReviewMode) return;
+            const idx = appState.quiz.currentIndex;
+            if(appState.quiz.markedForReview.has(idx)) {
+                appState.quiz.markedForReview.delete(idx);
+            } else {
+                appState.quiz.markedForReview.add(idx);
+            }
+            loadQuestion(idx);
+        }
+
+        function toggleBookmarkCurrent() {
+            const q = appState.quiz.questions[appState.quiz.currentIndex];
+            if(appState.progress.bookmarks.has(q.id)) {
+                appState.progress.bookmarks.delete(q.id);
+            } else {
+                appState.progress.bookmarks.add(q.id);
+            }
+            localStorage.setItem('os_bookmarks', JSON.stringify(Array.from(appState.progress.bookmarks)));
+            loadQuestion(appState.quiz.currentIndex);
+        }
+
+        function nextQuestion() {
+            if(appState.quiz.currentIndex < appState.quiz.questions.length - 1) {
+                loadQuestion(appState.quiz.currentIndex + 1);
+            } else {
+                if(!appState.quiz.isReviewMode) submitQuiz();
+                else navigate('dashboard');
+            }
+        }
+
+        function prevQuestion() {
+            if(appState.quiz.currentIndex > 0) {
+                loadQuestion(appState.quiz.currentIndex - 1);
+            }
+        }
+
+        function renderQuestionNavigator() {
+            const container = document.getElementById('desktop-q-navigator');
+            container.innerHTML = '';
+            appState.quiz.questions.forEach((_, i) => {
+                container.innerHTML += `<div class="q-dot unanswered" id="q-dot-${i}" onclick="loadQuestion(${i})">${i+1}</div>`;
+            });
+        }
+
+        function updateQuestionNavigatorUI() {
+            appState.quiz.questions.forEach((q, i) => {
+                const dot = document.getElementById(`q-dot-${i}`);
+                if(!dot) return;
+                
+                // Clear classes
+                dot.className = "q-dot";
+                
+                if(appState.quiz.isReviewMode) {
+                    const userAns = appState.quiz.userAnswers[i];
+                    if(userAns === q.correctAnswer) dot.classList.add('review-correct');
+                    else dot.classList.add('review-wrong');
+                } else {
+                    if(appState.quiz.markedForReview.has(i)) dot.classList.add('marked');
+                    else if(appState.quiz.userAnswers[i] !== undefined) dot.classList.add('answered');
+                    else dot.classList.add('unanswered');
+                }
+
+                if(i === appState.quiz.currentIndex) dot.classList.add('current');
+            });
+        }
+
+        function confirmQuitQuiz() {
+            if(appState.quiz.isReviewMode) {
+                navigate('dashboard');
+                return;
+            }
+            showModal("Quit Quiz?", "Are you sure? Your progress will not be saved.", () => {
+                if(appState.quiz.timerInterval) clearInterval(appState.quiz.timerInterval);
+                appState.quiz.active = false;
+                closeModal();
+                navigate('dashboard');
+            });
+        }
+
+        function submitQuiz() {
+            const total = appState.quiz.questions.length;
+            const answered = Object.keys(appState.quiz.userAnswers).length;
+            
+            if(answered < total && appState.quiz.timeLeft > 0) {
+                showModal("Submit Exam?", `You have ${total - answered} unanswered questions. Are you sure you want to submit?`, calculateResults);
+            } else {
+                calculateResults();
+            }
+        }
+
+        function calculateResults() {
+            if(appState.quiz.timerInterval) clearInterval(appState.quiz.timerInterval);
+            closeModal();
+            appState.quiz.active = false;
+
+            let score = 0;
+            const topicBreakdown = {};
+
+            appState.quiz.questions.forEach((q, i) => {
+                const userAns = appState.quiz.userAnswers[i];
+                const isCorrect = userAns === q.correctAnswer;
+                
+                if(!topicBreakdown[q.topic]) topicBreakdown[q.topic] = { correct: 0, total: 0 };
+                topicBreakdown[q.topic].total++;
+                
+                if(isCorrect) {
+                    score++;
+                    topicBreakdown[q.topic].correct++;
+                    // Remove from mistakes if they got it right
+                    if(appState.progress.mistakes[q.id]) {
+                        appState.progress.mistakes[q.id]--;
+                        if(appState.progress.mistakes[q.id] <= 0) delete appState.progress.mistakes[q.id];
+                    }
+                } else {
+                    // Add to mistakes
+                    appState.progress.mistakes[q.id] = (appState.progress.mistakes[q.id] || 0) + 1;
+                }
+            });
+
+            // Save Progress
+            localStorage.setItem('os_mistakes', JSON.stringify(appState.progress.mistakes));
+            
+            const timeUsedSecs = Math.floor((Date.now() - appState.quiz.startTime) / 1000);
+            
+            const resultData = {
+                score: score,
+                total: appState.quiz.questions.length,
+                timeUsed: timeUsedSecs,
+                topicBreakdown: topicBreakdown,
+                date: Date.now()
+            };
+            
+            appState.progress.history.push(resultData);
+            localStorage.setItem('os_history', JSON.stringify(appState.progress.history));
+
+            // Render Results View
+            navigate('quiz-results');
+            document.getElementById('result-score-val').innerText = score;
+            document.getElementById('result-total-val').innerText = resultData.total;
+            
+            const percent = Math.round((score / resultData.total) * 100);
+            document.getElementById('result-percent-val').innerText = percent + "%";
+            
+            const m = Math.floor(timeUsedSecs / 60);
+            const s = timeUsedSecs % 60;
+            document.getElementById('result-time-val').innerText = `${m}m ${s}s`;
+
+            const iconContainer = document.getElementById('result-icon-container');
+            const title = document.getElementById('result-title');
+            if(percent >= 85) {
+                iconContainer.className = "w-24 h-24 mx-auto bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-5xl mb-4";
+                iconContainer.innerHTML = '<i class="fa-solid fa-crown"></i>';
+                title.innerText = "Excellent Job!";
+            } else if(percent >= 60) {
+                iconContainer.className = "w-24 h-24 mx-auto bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-5xl mb-4";
+                iconContainer.innerHTML = '<i class="fa-solid fa-thumbs-up"></i>';
+                title.innerText = "Good Effort!";
+            } else {
+                iconContainer.className = "w-24 h-24 mx-auto bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-5xl mb-4";
+                iconContainer.innerHTML = '<i class="fa-solid fa-book-open-reader"></i>';
+                title.innerText = "Keep Studying!";
+            }
+
+            const breakdownContainer = document.getElementById('result-topic-breakdown');
+            breakdownContainer.innerHTML = '';
+            Object.keys(topicBreakdown).forEach(topic => {
+                const stat = topicBreakdown[topic];
+                const acc = Math.round((stat.correct / stat.total) * 100);
+                let colorClass = acc > 75 ? 'bg-emerald-500' : (acc > 50 ? 'bg-amber-500' : 'bg-red-500');
+                
+                breakdownContainer.innerHTML += `
+                    <div>
+                        <div class="flex justify-between text-sm font-semibold mb-1">
+                            <span class="text-slate-700">${topic}</span>
+                            <span class="text-slate-700">${stat.correct}/${stat.total} (${acc}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5">
+                            <div class="${colorClass} h-2.5 rounded-full" style="width: ${acc}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function reviewQuiz() {
+            appState.quiz.isReviewMode = true;
+            document.getElementById('view-quiz-results').classList.add('hidden');
+            document.getElementById('view-active-quiz').classList.remove('hidden');
+            document.getElementById('quiz-timer-container').classList.add('hidden');
+            document.getElementById('btn-submit-quiz').classList.add('hidden');
+            document.getElementById('quiz-header-title').innerText = "Quiz Review";
+            
+            updateQuestionNavigatorUI();
+            loadQuestion(0);
+        }
+
+        // --- FLASHCARDS LOGIC ---
+        let fcCurrentIndex = 0;
+        function initFlashcards() {
+            fcCurrentIndex = 0;
+            renderFlashcard();
+        }
+
+        function renderFlashcard() {
+            const fc = flashcardsDB[fcCurrentIndex];
+            document.getElementById('fc-topic').innerText = fc.topic;
+            document.getElementById('fc-question').innerHTML = fc.q;
+            document.getElementById('fc-answer').innerHTML = fc.a;
+            
+            const cardEl = document.getElementById('flashcard-element');
+            cardEl.classList.remove('flipped'); // always show front first
+            
+            if(fc.trick) {
+                document.getElementById('fc-memory-trick').classList.remove('hidden');
+                document.getElementById('fc-memory-text').innerHTML = fc.trick;
+            } else {
+                document.getElementById('fc-memory-trick').classList.add('hidden');
+            }
+            
+            document.getElementById('fc-counter').innerText = `${fcCurrentIndex + 1} / ${flashcardsDB.length}`;
+        }
+
+        function flipFlashcard() {
+            document.getElementById('flashcard-element').classList.toggle('flipped');
+        }
+
+        function nextFlashcard() {
+            if(fcCurrentIndex < flashcardsDB.length - 1) {
+                fcCurrentIndex++;
+                renderFlashcard();
+            }
+        }
+
+        function prevFlashcard() {
+            if(fcCurrentIndex > 0) {
+                fcCurrentIndex--;
+                renderFlashcard();
+            }
+        }
+
+        // --- LEARN (THEORY) LOGIC ---
+        function initLearn() {
+            const container = document.getElementById('learn-cards-container');
+            container.innerHTML = '';
+            
+            theoryDB.forEach((item, i) => {
+                container.innerHTML += `
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow relative">
+                        <span class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2 block">${item.topic}</span>
+                        <h3 class="text-xl font-bold text-slate-800 mb-4">${item.title}</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-6">${item.content}</p>
+                        
+                        <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3">
+                            <p class="text-xs font-bold text-indigo-800 uppercase mb-1"><i class="fa-solid fa-bolt"></i> Exam Tip</p>
+                            <p class="text-sm font-medium text-indigo-700">${item.examTip}</p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- LIST VIEWS (Question Bank, Mistakes, Bookmarks) ---
+        let currentListType = 'all';
+        function initListView(type) {
+            currentListType = type;
+            const title = document.getElementById('list-title');
+            const sub = document.getElementById('list-subtitle');
+            
+            if(type === 'mistakes') {
+                title.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-red-500 mr-2"></i> My Mistakes';
+                sub.innerText = "Questions you've answered incorrectly in past quizzes.";
+            } else if (type === 'bookmarks') {
+                title.innerHTML = '<i class="fa-solid fa-star text-amber-400 mr-2"></i> Bookmarked Questions';
+                sub.innerText = "Questions you saved for later review.";
+            } else {
+                title.innerHTML = '<i class="fa-solid fa-database text-indigo-500 mr-2"></i> Question Bank';
+                sub.innerText = `Browse all ${questionsDB.length} questions.`;
+            }
+            
+            filterList(); // render
+        }
+
+        function filterList() {
+            const search = document.getElementById('list-search').value.toLowerCase();
+            const container = document.getElementById('list-container');
+            container.innerHTML = '';
+            
+            let pool = [];
+            if(currentListType === 'mistakes') {
+                pool = questionsDB.filter(q => appState.progress.mistakes[q.id]);
+            } else if (currentListType === 'bookmarks') {
+                pool = questionsDB.filter(q => appState.progress.bookmarks.has(q.id));
+            } else {
+                pool = questionsDB;
+            }
+
+            let rendered = 0;
+            pool.forEach(q => {
+                if(q.question.toLowerCase().includes(search) || q.topic.toLowerCase().includes(search)) {
+                    rendered++;
+                    const badgeColor = q.type === 'concept' ? 'blue' : (q.type === 'lab' || q.type === 'command' ? 'emerald' : 'amber');
+                    
+                    container.innerHTML += `
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                            <div class="flex flex-wrap items-center justify-between mb-3">
+                                <div class="flex gap-2">
+                                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">${q.topic}</span>
+                                    <span class="text-xs font-bold text-${badgeColor}-700 bg-${badgeColor}-100 px-2 py-1 rounded uppercase">${q.type}</span>
+                                </div>
+                                ${currentListType === 'mistakes' ? `<span class="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded"><i class="fa-solid fa-xmark"></i> Failed ${appState.progress.mistakes[q.id]} times</span>` : ''}
+                            </div>
+                            <h4 class="font-bold text-slate-800 text-lg mb-3">${q.question}</h4>
+                            <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3 mb-3">
+                                <p class="text-sm font-semibold text-emerald-800"><i class="fa-solid fa-check mr-1"></i> Correct Answer:</p>
+                                <p class="text-sm text-emerald-700 mt-1">${q.options[q.correctAnswer]}</p>
+                            </div>
+                            <p class="text-sm text-slate-600"><strong>Explanation:</strong> ${q.explanation}</p>
+                        </div>
+                    `;
+                }
+            });
+
+            if(rendered === 0) {
+                document.getElementById('list-empty-state').classList.remove('hidden');
+            } else {
+                document.getElementById('list-empty-state').classList.add('hidden');
+            }
+        }
+
+        function showModal(title, text, confirmCallback = null) {
+            document.getElementById('modal-overlay').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('modal-content').classList.remove('scale-95', 'opacity-0');
+            }, 10);
+            
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-text').innerText = text;
+            
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            if(confirmCallback) {
+                confirmBtn.classList.remove('hidden');
+                confirmBtn.onclick = () => { confirmCallback(); };
+            } else {
+                confirmBtn.classList.add('hidden');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal-content').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                document.getElementById('modal-overlay').style.display = 'none';
+            }, 200);
+        }
+
+        function shuffleArray(array) {
+            let curId = array.length;
+            while (0 !== curId) {
+                let randId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                let tmp = array[curId];
+                array[curId] = array[randId];
+                array[randId] = tmp;
+            }
+            return array;
+        }
+
+        function resetAllData() {
+            showModal("Reset All Progress?", "This will permanently delete your quiz history, mistakes, and bookmarks. This cannot be undone.", () => {
+                localStorage.removeItem('os_mistakes');
+                localStorage.removeItem('os_bookmarks');
+                localStorage.removeItem('os_history');
+                appState.progress = { mistakes: {}, bookmarks: new Set(), history: [] };
+                closeModal();
+                navigate('dashboard');
+            });
+        }
+
+        // Initialize App
+        window.onload = function() {
+            // Update the range input max to match the dynamic length
+            const countInput = document.getElementById('setup-count');
+            if(questionsDB.length < 75) {
+                countInput.max = questionsDB.length;
+            } else {
+                countInput.max = 75;
+            }
+            navigate('dashboard');
+        };
+
+    </script>
+</body>
+</html>
